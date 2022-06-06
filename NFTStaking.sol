@@ -7,8 +7,14 @@ import "https://github.com/NFTsForNewbies/cappigscollection/blob/main/Collection
 
 contract NFTStaking is Ownable, IERC721Receiver {
 
-  uint256 public totalStaked;
-  
+  struct vaultInfo {
+        Collection nft;
+        BACONRewards token;
+        string name;
+  }
+
+  vaultInfo[] public VaultInfo;
+
   // struct to store a stake's token, owner, and earning values
   struct Stake {
     uint24 tokenId;
@@ -16,31 +22,36 @@ contract NFTStaking is Ownable, IERC721Receiver {
     address owner;
   }
 
+  uint256 public totalStaked;
+  mapping(uint256 => Stake) public vault; 
   event NFTStaked(address owner, uint256 tokenId, uint256 value);
   event NFTUnstaked(address owner, uint256 tokenId, uint256 value);
   event Claimed(address owner, uint256 amount);
 
-  // reference to the Block NFT contract
-  Collection nft;
-  BACONRewards token;
+function addVault(
+        Collection _nft,
+        BACONRewards _token,
+        string calldata _name
+    ) public {
+        VaultInfo.push(
+            vaultInfo({
+                nft: _nft,
+                token: _token,
+                name: _name
+            })
+        );
+    }
 
-  // maps tokenId to stake
-  mapping(uint256 => Stake) public vault; 
-
-   constructor(Collection _nft, BACONRewards _token) { 
-    nft = _nft;
-    token = _token;
-  }
-
-  function stake(uint256[] calldata tokenIds) external {
+  function stake(uint256 _pid, uint256[] calldata tokenIds) external {
     uint256 tokenId;
     totalStaked += tokenIds.length;
+    vaultInfo storage vaultid = VaultInfo[_pid];
     for (uint i = 0; i < tokenIds.length; i++) {
       tokenId = tokenIds[i];
-      require(nft.ownerOf(tokenId) == msg.sender, "not your token");
+      require(vaultid.nft.ownerOf(tokenId) == msg.sender, "not your token");
       require(vault[tokenId].tokenId == 0, 'already staked');
 
-      nft.transferFrom(msg.sender, address(this), tokenId);
+      vaultid.nft.transferFrom(msg.sender, address(this), tokenId);
       emit NFTStaked(msg.sender, tokenId, block.timestamp);
 
       vault[tokenId] = Stake({
@@ -51,9 +62,10 @@ contract NFTStaking is Ownable, IERC721Receiver {
     }
   }
 
-  function _unstakeMany(address account, uint256[] calldata tokenIds) internal {
+  function _unstakeMany(address account, uint256[] calldata tokenIds, uint256 _pid) internal {
     uint256 tokenId;
     totalStaked -= tokenIds.length;
+    vaultInfo storage vaultid = VaultInfo[_pid];
     for (uint i = 0; i < tokenIds.length; i++) {
       tokenId = tokenIds[i];
       Stake memory staked = vault[tokenId];
@@ -61,26 +73,26 @@ contract NFTStaking is Ownable, IERC721Receiver {
 
       delete vault[tokenId];
       emit NFTUnstaked(account, tokenId, block.timestamp);
-      nft.transferFrom(address(this), account, tokenId);
+      vaultid.nft.transferFrom(address(this), account, tokenId);
     }
   }
 
-  function claim(uint256[] calldata tokenIds) external {
-      _claim(msg.sender, tokenIds, false);
+  function claim(uint256[] calldata tokenIds, uint256 _pid) external {
+      _claim(msg.sender, tokenIds, _pid, false);
   }
 
-  function claimForAddress(address account, uint256[] calldata tokenIds) external {
-      _claim(account, tokenIds, false);
+  function claimForAddress(address account, uint256[] calldata tokenIds, uint256 _pid) external {
+      _claim(account, tokenIds, _pid, false);
   }
 
-  function unstake(uint256[] calldata tokenIds) external {
-      _claim(msg.sender, tokenIds, true);
+  function unstake(uint256[] calldata tokenIds, uint256 _pid) external {
+      _claim(msg.sender, tokenIds, _pid, true);
   }
 
-  function _claim(address account, uint256[] calldata tokenIds, bool _unstake) internal {
+  function _claim(address account, uint256[] calldata tokenIds, uint256 _pid, bool _unstake) internal {
     uint256 tokenId;
     uint256 earned = 0;
-
+    vaultInfo storage vaultid = VaultInfo[_pid];
     for (uint i = 0; i < tokenIds.length; i++) {
       tokenId = tokenIds[i];
       Stake memory staked = vault[tokenId];
@@ -96,10 +108,10 @@ contract NFTStaking is Ownable, IERC721Receiver {
     }
     if (earned > 0) {
       earned = earned / 10;
-      token.mint(account, earned);
+      vaultid.token.mint(account, earned);
     }
     if (_unstake) {
-      _unstakeMany(account, tokenIds);
+      _unstakeMany(account, tokenIds, _pid);
     }
     emit Claimed(account, earned);
   }
@@ -118,9 +130,10 @@ contract NFTStaking is Ownable, IERC721Receiver {
   }
 
   // should never be used inside of transaction because of gas fee
-  function balanceOf(address account) public view returns (uint256) {
+  function balanceOf(address account,uint256 _pid) public view returns (uint256) {
     uint256 balance = 0;
-    uint256 supply = nft.totalSupply();
+    vaultInfo storage vaultid = VaultInfo[_pid];
+    uint256 supply = vaultid.nft.totalSupply();
     for(uint i = 1; i <= supply; i++) {
       if (vault[i].owner == account) {
         balance += 1;
@@ -130,9 +143,9 @@ contract NFTStaking is Ownable, IERC721Receiver {
   }
 
   // should never be used inside of transaction because of gas fee
-  function tokensOfOwner(address account) public view returns (uint256[] memory ownerTokens) {
-
-    uint256 supply = nft.totalSupply();
+  function tokensOfOwner(address account, uint256 _pid) public view returns (uint256[] memory ownerTokens) {
+    vaultInfo storage vaultid = VaultInfo[_pid];
+    uint256 supply = vaultid.nft.totalSupply();
     uint256[] memory tmp = new uint256[](supply);
 
     uint256 index = 0;
