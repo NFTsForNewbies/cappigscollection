@@ -1141,7 +1141,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 pragma solidity ^0.8.0;
 
-contract Collection is ERC721Enumerable, Ownable {
+contract CapPigsPolygon is ERC721Enumerable, Ownable {
     using Strings for uint256;
     string public baseURI;
     string public baseExtension = ".json";
@@ -1150,7 +1150,7 @@ contract Collection is ERC721Enumerable, Ownable {
     uint256 public maxMintAmount = 5;
     bool public paused = false;
 
-    constructor() ERC721("Capitalist Pigs v3 NFT Collection", "CPV3") {}
+    constructor() ERC721("Capitalist Pigs Poly NFT Collection", "CPP") {}
         // internal
         function _baseURI() internal view virtual override returns (string memory) {
         return "ipfs://QmbUTQF6q2a484wj7CvY2oLSh5gMBog73NnFLqT4GU88qT/";
