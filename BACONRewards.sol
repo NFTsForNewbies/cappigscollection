@@ -15,7 +15,7 @@ contract N2DRewards is ERC20, ERC20Burnable, Ownable {
 
   uint256 private _totalSupply;
   uint256 private MAXSUP;
-  uint256 constant MAXIMUMSUPPLY=10000000*10**18;
+  uint256 constant MAXIMUMSUPPLY=1000000*10**18;
 
   constructor() ERC20("BACONRewards", "BACON") { 
       _mint(msg.sender, 1000000 * 10 ** 18);
