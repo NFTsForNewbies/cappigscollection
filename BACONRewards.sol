@@ -34,4 +34,3 @@ contract BACONRewards is ERC20, ERC20Burnable, Ownable {
     controllers[controller] = false;
   }
  }
-
