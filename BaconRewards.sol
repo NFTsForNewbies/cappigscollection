@@ -10,7 +10,7 @@ contract $BACONRewards is ERC20, ERC20Burnable, Ownable {
 
   mapping(address => bool) controllers;
   
-  constructor() ERC20("CPBaconRewards", "$BACON") { }
+  constructor() ERC20("BACONRewards", "BACON") { }
 
   function mint(address to, uint256 amount) external {
     require(controllers[msg.sender], "Only controllers can mint");
@@ -33,4 +33,5 @@ contract $BACONRewards is ERC20, ERC20Burnable, Ownable {
   function removeController(address controller) external onlyOwner {
     controllers[controller] = false;
   }
+ }
 }
